@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Text.RegularExpressions;
 
 namespace WebCompare2_0.Model
 {
@@ -17,7 +18,7 @@ namespace WebCompare2_0.Model
         private int tableSize = 16;
         private int count;
         private double similarity;
-        private string url;
+        private string url, name;
 
         // Entry class
         public class HEntry
@@ -222,33 +223,53 @@ namespace WebCompare2_0.Model
             set
             {
                 url = value;
+                name = url.Substring(30);
             }
         }
 
+        public string Name
+        {
+            get
+            {
+                return name;
+            }
+            set
+            {
+                name = value;
+            }
+        }
         #endregion
 
         #region Serialization
 
-        public void saveTable(int num)
+        public void SaveTable(int num)
         {
-            string FileName = $"tablebin\table{num}.bin";
-            Stream TestFileStream = File.Create(FileName);
-            BinaryFormatter serializer = new BinaryFormatter();
-            serializer.Serialize(TestFileStream, this);
-            TestFileStream.Close();
+            try
+            {
+                string FileName = $"tablebin\table{num}.bin";
+                Stream TestFileStream = File.Create(FileName);
+                BinaryFormatter serializer = new BinaryFormatter();
+                serializer.Serialize(TestFileStream, this);
+                TestFileStream.Close();
+            }
+            catch (Exception e) { Console.WriteLine("Error in SaveTable: " + e); }
         }
 
-        public HTable loadTable(int num)
+        public HTable LoadTable(int num)
         {
             string FileName = $"tablebin\table{num}.bin";
             HTable loadedTable = null;
-            if (File.Exists(FileName))
+            try
             {
-                Stream filestream = File.OpenRead(FileName);
-                BinaryFormatter deserializer = new BinaryFormatter();
-                loadedTable = (HTable) deserializer.Deserialize(filestream);
-                filestream.Close();
+                if (File.Exists(FileName))
+                {
+                    Stream filestream = File.OpenRead(FileName);
+                    BinaryFormatter deserializer = new BinaryFormatter();
+                    loadedTable = (HTable)deserializer.Deserialize(filestream);
+                    filestream.Close();
+                }
             }
+            catch (Exception e) { Console.WriteLine("Error in LoadTable: " + e); }
             return loadedTable;
         }
 
