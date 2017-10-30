@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text.RegularExpressions;
+using System.Windows;
 
 namespace WebCompare2_0.Model
 {
@@ -21,6 +22,7 @@ namespace WebCompare2_0.Model
         private string url, name;
 
         // Entry class
+        [Serializable()]
         public class HEntry
         {
             public string key { get; set; }
@@ -246,7 +248,8 @@ namespace WebCompare2_0.Model
         {
             try
             {
-                string FileName = $"tablebin\table{num}.bin";
+                Directory.CreateDirectory("tablebin\\");
+                string FileName = $"tablebin\\table{num}.bin";
                 Stream TestFileStream = File.Create(FileName);
                 BinaryFormatter serializer = new BinaryFormatter();
                 serializer.Serialize(TestFileStream, this);
@@ -257,7 +260,7 @@ namespace WebCompare2_0.Model
 
         public HTable LoadTable(int num)
         {
-            string FileName = $"tablebin\table{num}.bin";
+            string FileName = $"tablebin\\table{num}.bin";
             HTable loadedTable = null;
             try
             {
@@ -267,6 +270,10 @@ namespace WebCompare2_0.Model
                     BinaryFormatter deserializer = new BinaryFormatter();
                     loadedTable = (HTable)deserializer.Deserialize(filestream);
                     filestream.Close();
+                }
+                else
+                {
+                    MessageBox.Show("Error", "Table does not exist", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception e) { Console.WriteLine("Error in LoadTable: " + e); }
@@ -315,12 +322,12 @@ namespace WebCompare2_0.Model
             try
             {
                 this.tableSize *= 2;
-                HEntry[] temp = this.Table;
+                HEntry[] temp = this.table;
                 this.table = null;
                 this.table = new HEntry[tableSize];
                 foreach (HEntry elem in temp)
                 {
-                    this.Put(elem.key, elem.value);
+                    if(elem != null) this.Put(elem.key, elem.value);
                 }
             }
             catch (Exception e) { Console.WriteLine("Error while Expanding table: " + e); }

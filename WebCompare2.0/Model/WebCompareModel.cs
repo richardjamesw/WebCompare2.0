@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HtmlAgilityPack;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -14,12 +15,15 @@ namespace WebCompare2_0.Model
     public class WebCompareModel
     {
         // Websites
-        private static string[] websites = {   "https://stocktwits.com/symbol/DOW",
-      "https://stocktwits.com/symbol/SPX", "https://stocktwits.com/symbol/GOOG",
-      "https://stocktwits.com/symbol/AAPL", "https://stocktwits.com/symbol/MSFT",
-      "https://stocktwits.com/symbol/NVDA", "https://stocktwits.com/symbol/TWTR",
-      "https://stocktwits.com/symbol/FB", "https://stocktwits.com/symbol/BBRY",
-      "https://stocktwits.com/symbol/ORCL"   };
+        private static string[] websites = {
+            "https://petscan.wmflabs.org/?format=csv&psid=1356388",    // Sports
+            "https://petscan.wmflabs.org/?format=csv&psid=1356389",    // Calculus
+            "https://petscan.wmflabs.org/?format=csv&psid=1356390",    // Geography
+            "https://petscan.wmflabs.org/?format=csv&psid=1356391",    // History
+            "https://petscan.wmflabs.org/?format=csv&psid=1356392",    // Music   
+        };
+
+        public enum SitesEnum {Sports, Calculus, Geography, History, Music};
 
         public static string[] Websites
         {
@@ -32,44 +36,96 @@ namespace WebCompare2_0.Model
         #region Helper Methods
 
         /// <summary>
+        /// Get list of 200 sites 
+        /// </summary>
+        /// <param name="url"></param>
+        /// <returns></returns>
+        public static string[] GetSiteList(string url)
+        {
+            Console.WriteLine("Getting site list for: " + url);
+            string[] output = new string[200];
+            try
+            {
+                string line = "";
+                string regex =
+                    @"""\d{1,3}"",""(?<url>(\w|\d|\n|[().,-–_''])+?)""";
+
+                WebRequest webRequest;
+                webRequest = WebRequest.Create(url);
+
+                Stream objStream;
+                objStream = webRequest.GetResponse().GetResponseStream();
+
+                // get stream of the website list for specific category
+                StreamReader objReader = new StreamReader(objStream);
+                // skip first line, data not useful
+                objReader.ReadLine();
+                // for each line in the category pull 200 sites
+                for (int s = 0; s < 200; ++s)
+                {
+                    if (objReader != null)
+                    {
+                        line = objReader.ReadLine();
+                        var result = Regex.Match(line, regex);
+                        output[s] = "https://en.wikipedia.org/wiki/" + result.Groups["url"].Value;
+                    }
+                }
+                objReader.Close();
+                objStream.Close();
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show("Exception caught: " + e, "Exception:Session:GetSiteList()", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            return output;
+        }
+
+
+        // HTMPAglityPack Get
+        public static string[] GetWebDataAgility(string url)
+        {
+            string data = "";
+            string[] output = null;
+            try
+            {
+                var webGet = new HtmlWeb();
+                var doc = webGet.Load(url);
+                string title = "";
+
+                // Title
+                var node = doc.DocumentNode.SelectSingleNode("//title");
+                if (node != null) title = node.InnerText;
+                // Paragraphs
+                var nodes = doc.DocumentNode.SelectNodes("//p");
+                data = title;
+                foreach (var n in nodes)
+                {
+                    data += " " + n.InnerText;
+                }
+
+                // remove random characters
+                data = new string(data
+                        .Where(x => char.IsWhiteSpace(x) || char.IsLetterOrDigit(x))
+                        .ToArray());
+                // split into array
+                output = data.Split(' ');
+            }
+            catch (Exception e) { Console.WriteLine("Error in GetWebDataAgility(): " + e); }
+
+            return output;
+        }
+
+        /// <summary>
         /// Parse the data using regex and weighted delimiters
         /// </summary>
         /// <param name="data">data to parse</param>
         public static string[] Parser(string[] data)
         {
-            if (data == null) return null;
-            string[] output = null;
-            try
-            {
-                string temp = "";
-
-                //string regex = @"(body&quot;:&quot;).*(&quot;,&quot;links)";
-                //string regexWiki = @"<p>\w+</p>";
-                //string regexStock = "(?<=(body&quot;:&quot;)).*(?=(&quot;,&quot;links))";
-                string regexStock2 = @"(?<=(body&quot;:&quot;))(\w|\d|\n|[().,\-:;@#$%^&*\[\]'+–/\/®°⁰!?{}|`~]| )+?(?=(&quot;,&quot;links))";
-                //string regexStock3 = "(?<=(<ol class='stream-list.*&quot;body&quot;:&quot;))(\\w|\\d|\n|^quot|[().,\\-:;@#$%^&*\\[\\]'+–/\\/®°⁰!?{}|`~]| )+?(?=(&quot;,&quot;links))";
-
-                // Start at slot 3, first 3 elements are meta data
-                for (int s = 3; s < data.Length; ++s)
-                {
-                    var tempParsed = Regex.Matches(data[s], regexStock2, RegexOptions.Singleline);
-                    foreach (var msg in tempParsed)
-                    {
-                        // append each message as a string 
-                        temp += msg.ToString() + ' ';
-                    }
-                }
-
-                // Remove random characters
-                temp = new string(temp
-                        .Where(x => char.IsWhiteSpace(x) || char.IsLetterOrDigit(x) || x == '$')
-                        .ToArray());
-                // Split into array
-                output = temp.Split(' ');
-            }
+            try { }
             catch { }
 
-            return output;
+            return null;
         }
 
         // Similarity Calculation
@@ -120,12 +176,27 @@ namespace WebCompare2_0.Model
             return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
 
         }
+
+        // Add message to Loader Status
+        public static void AddLoaderMessage(string s)
+        {
+            ViewModel.LoaderViewModel.Instance.AddMessage(s);
+        }
         #endregion
     }
 }
 
 /* Methods No longer used - Now use HTML Agility Pack instead
  * 
+ * 
+ * 
+
+                // Get messages
+                //var nodes = doc.DocumentNode.SelectNodes("//*[@id=\"updates\"]//li");
+
+
+
+
 //public static string RandomWebsite
         //{
         //    get
@@ -138,7 +209,7 @@ namespace WebCompare2_0.Model
 /// Get the data from a website as a string
 /// </summary>
 /// <param name="url">website to pull data from</param>
- public static string GetWebData(string url)
+ public static string GetWebData1(string url)
 {
 
     try
@@ -157,7 +228,9 @@ namespace WebCompare2_0.Model
     return null;
 }
 
-       public static string GetWebData2(string url)
+
+
+    public static string GetWebData2(string url)
         {
             try
             {
@@ -184,5 +257,6 @@ namespace WebCompare2_0.Model
             }
 
             return null;
-        }*/
+        }
+       */
 

@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using WebCompare2._0.View;
 
 namespace WebCompare2_0
 {
@@ -13,16 +14,39 @@ namespace WebCompare2_0
     /// </summary>
     public partial class App : Application
     {
+        private static object lockObj = new object();
+        private static volatile App instance;
+        public static App Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (lockObj)
+                    {
+                        if (instance == null)
+                            instance = new App();
+                    }
+                }
+                return instance;
+            }
+        }
+
+        Loader lw = new Loader();
+
         /// <summary>
         /// Display the Main Window
         /// </summary>
         private void AppStartup(object sender, StartupEventArgs e)
         {
-            MainWindow mw = new MainWindow();
-            mw.DataContext = ViewModel.WebCompareViewModel.Instance;
-            mw.Show();
+            lw.DataContext = ViewModel.LoaderViewModel.Instance;
+            lw.Show();
         }
 
+        public void CloseLoader()
+        {
+            lw.Close();
+        }
         /// <summary>
         /// Global exception handler, used as fallback when local exceptions are missed
         /// </summary>

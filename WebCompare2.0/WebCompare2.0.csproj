@@ -68,6 +68,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Model\BTree.cs" />
+    <Compile Include="ViewModel\LoaderViewModel.cs" />
     <Compile Include="ViewModel\Session.cs" />
     <Compile Include="ViewModel\WebCompareViewModel.cs" />
     <Compile Include="View\Loader.xaml.cs">
@@ -75,6 +76,9 @@
     </Compile>
     <Compile Include="View\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\Window1.xaml.cs">
+      <DependentUpon>Window1.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -97,6 +101,8 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Model\data.csv" />
+    <None Include="Model\json1.json" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -107,7 +113,9 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Model\petscan.html" />
+  </ItemGroup>
   <ItemGroup>
     <Page Include="View\Loader.xaml">
       <SubType>Designer</SubType>
@@ -120,6 +128,10 @@
     <Page Include="View\Resources.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="View\Window1.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>

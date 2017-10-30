@@ -100,7 +100,7 @@ namespace WebCompare2_0.ViewModel
 
                     // Parse each message into
                     AddMessage("\nPARSING data from: " + WebCompareModel.Websites[w]);
-                    parsedMessages = WebCompareModel.Parser(data);
+                    //parsedMessages = WebCompareModel.Parser(data);
 
                     // Fill respective table
                     AddMessage("\nFILLING TABLE from: " + WebCompareModel.Websites[w] + "\n");
@@ -115,7 +115,7 @@ namespace WebCompare2_0.ViewModel
 
                     // Parse each message into
                     AddMessage("\nPARSING data from USER entered webpage");
-                    parsedMessages = WebCompareModel.Parser(data);
+                    //parsedMessages = WebCompareModel.Parser(data);
 
                     // Fill respective
                     AddMessage("\nFILLING TABLE from USER entered webpage\n");
@@ -140,17 +140,15 @@ namespace WebCompare2_0.ViewModel
             wcViewModel.Results = GetResults();
         }
 
-        private void worker_RunWorkerCompleted(object sender,
-                                                 RunWorkerCompletedEventArgs e)
+        private void worker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            //update ui once worker complete his work
-            //wcViewModel.StartCommand.RaiseCanExecuteChanged();
-
+            //update ui once worker completes his work
+            wcViewModel.GoCommand.RaiseCanExecuteChanged();
         }
 
         #endregion
 
-        #region Helper Files
+        #region Helper Methods
 
         //Send message to GUI
         private void AddMessage(string s)

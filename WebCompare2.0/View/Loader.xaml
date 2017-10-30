@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        
         xmlns:local="clr-namespace:WebCompare2._0.View"
         mc:Ignorable="d"
         Title="Loader" Height="270" Width="300">
@@ -19,16 +20,16 @@
             Select <Bold>Start</Bold> to begin program.</TextBlock>
 
         <!-- Row 1: Buttons -->
-        <Button HorizontalAlignment="Left" Width="50" Height="20" Margin="30,0,0,0" Background="MediumSpringGreen" Grid.Row="1">Load</Button>
-        <Button IsEnabled="False" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,30,0" Background="MediumSpringGreen" Grid.Row="1">Start</Button>
+        <CheckBox IsChecked="{Binding UpdateIsChecked}" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">Update</CheckBox>
+        <Button Command="{Binding LoadCommand}" HorizontalAlignment="Left" Width="50" Height="20" Margin="30,0,0,0" Background="MediumSpringGreen" Grid.Row="1">Load</Button>
+        <Button Command="{Binding StartCommand}" HorizontalAlignment="Right" Width="50" Height="20" Margin="0,0,30,0" Background="MediumSpringGreen" Grid.Row="1">Start</Button>
 
-        <!-- Row 2: Status Bar -->
+        <!-- Row 2: Status Bar 
         <ProgressBar Grid.Row="2" Height="25" Width="250" HorizontalAlignment="Stretch">
-        </ProgressBar>
+        </ProgressBar>-->
 
         <!-- Row 3: Status Box -->
-
-        <TextBox Name="tbLoaderStatus" TextChanged="TextBoxLoaderStatus_TextChanged" Text="{Binding LoadStatus, Mode=OneWay}" IsReadOnly="True" Grid.Row="3" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" />
+        <TextBox Name="tbLoaderStatus" TextChanged="TextBoxLoaderStatus_TextChanged" Text="{Binding LoadStatus}" IsReadOnly="False" Grid.Row="3" VerticalScrollBarVisibility="Auto" TextWrapping="Wrap" />
 
     </Grid>
 </Window>

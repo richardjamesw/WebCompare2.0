@@ -34,7 +34,7 @@ namespace WebCompare2_0.ViewModel
 
         public WebCompareViewModel()
         {
-            StartCommand = new DelegateCommand(OnStart, CanStart);
+            GoCommand = new DelegateCommand(OnGo, CanGo);
         }
         #endregion
 
@@ -117,12 +117,16 @@ namespace WebCompare2_0.ViewModel
 
         #region Commands
 
-        public DelegateCommand StartCommand { get; private set; }
-        private void OnStart()
+        /// <summary>
+        /// Command for the Go Button from the main window
+        /// </summary>
+        public DelegateCommand GoCommand { get; private set; }
+        private void OnGo()
         {
             Session.Instance.Start();
+            GoCommand.RaiseCanExecuteChanged();
         }
-        private bool CanStart()
+        private bool CanGo()
         {
             return Session.Instance.CanStart();
         }
