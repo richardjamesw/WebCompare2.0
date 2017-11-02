@@ -12,10 +12,12 @@ namespace WebCompare2_0.Model
     [Serializable()]
     public class BTree
     {
-        const int ByteLength = 128;
-        const int k = 64;  // num of children
-        static int numOfNodes = 0;
         static Node root;
+        static int numOfNodes = 0;
+        const int K = 8;  // min degree
+        const int kvp_SIZE = (2 * K - 1);  // min degree
+        const int children_SIZE = (2 * K);  // min degree
+        const int ByteLength = 128;
 
         /// <summary>
         /// Constructor.
@@ -31,7 +33,6 @@ namespace WebCompare2_0.Model
                 // read in the root
                 root = ReadTree(1);
             }
-            // else 
             else
             {
                 // create new root Node and write it to disk
@@ -40,29 +41,88 @@ namespace WebCompare2_0.Model
             }
         }
 
+        #region BTree Properties
+        public Node Root
+        {
+            get
+            {
+                return root;
+            }
+            set
+            {
+                root = value;
+            }
+        }
+
+        public static int NumberOfNodes
+        {
+            get
+            {
+                return numOfNodes;
+            }
+            set
+            {
+                numOfNodes = value;
+                SetNumberOfNodes(numOfNodes);
+            }
+        }
+
+        /// <summary>
+        /// Read number of nodes from file
+        /// </summary>
+        /// <returns></returns>
+        private static int GetNumberOfNodes()
+        {
+            try
+            {
+                string FileName = $"treebin\\numberofnodes.bin";
+                return Int32.Parse(File.ReadAllText(FileName));
+            }
+            catch { return 0; }
+        }
+
+        /// <summary>
+        /// Set number of nodes in a file
+        /// </summary>
+        /// <param name="num"></param>
+        private static void SetNumberOfNodes(int num)
+        {
+            try
+            {
+                string FileName = $"treebin\\numberofnodes.bin";
+                File.WriteAllText(FileName, num.ToString());
+            }
+            catch
+            {
+
+            }
+        }
+
+        #endregion
+
         /// <summary>
         /// Internal Node class
         /// </summary>
         [Serializable()]
         public class Node
         {
-            bool leaf;
             long id;
-            int numberOfKeys;
+            bool leaf;
+            int numberOfKeys = 0;
             KeyValuePair<float, string>[] kvPairs;
-            long[] children;
+            Node[] children;
+            Node parent = null;
 
             public Node()
             {
-                id = ++numOfNodes;
+                id = ++NumberOfNodes;
                 leaf = true;
-                kvPairs = new KeyValuePair<float, string>[k];
-                children = new long[k + 1];
-                
+                kvPairs = new KeyValuePair<float, string>[kvp_SIZE];
+                children = new Node[children_SIZE];
             }
 
             #region Node Properties 
-            // ID property
+
             public long ID
             {
                 get
@@ -74,7 +134,7 @@ namespace WebCompare2_0.Model
                     id = value;
                 }
             }
-            // Name property
+
             public KeyValuePair<float, string>[] KVPairs
             {
                 get
@@ -86,8 +146,8 @@ namespace WebCompare2_0.Model
                     kvPairs = value;
                 }
             }
-            // Name property
-            public long[] Children
+
+            public Node[] Children
             {
                 get
                 {
@@ -98,19 +158,19 @@ namespace WebCompare2_0.Model
                     children = value;
                 }
             }
-            //// Name property
-            //public long Parent
-            //{
-            //    get
-            //    {
-            //        return parent;
-            //    }
-            //    set
-            //    {
-            //        parent = value;
-            //    }
-            //}
-            // Name property
+
+            public Node Parent
+            {
+                get
+                {
+                    return parent;
+                }
+                set
+                {
+                    parent = value;
+                }
+            }
+
             public bool Leaf
             {
                 get
@@ -137,34 +197,6 @@ namespace WebCompare2_0.Model
         }
 
         /// <summary>
-        /// Read number of nodes from file
-        /// </summary>
-        /// <returns></returns>
-        private static int GetNumberOfNodes()
-        {
-            try
-            {
-                string FileName = $"treebin\\numberofnodes.bin";
-                return Int32.Parse(File.ReadAllText(FileName));
-            }
-            catch { return 0; }
-        }
-
-
-        private static void SetNumberOfNodes(int num)
-        {
-            try
-            {
-                string FileName = $"treebin\\numberofnodes.bin";
-                File.WriteAllText(FileName, num.ToString());
-            }
-            catch
-            {
-
-            }
-        }
-
-        /// <summary>
         /// Read a Node from disk
         /// </summary>
         /// <param name="id">Node identification number.</param>
@@ -176,20 +208,20 @@ namespace WebCompare2_0.Model
             {
                 if (File.Exists(FileName))
                 {
-                    readNode.KVPairs = new KeyValuePair<float, string>[k];
+                    readNode.KVPairs = new KeyValuePair<float, string>[K];
                     using (BinaryReader reader = new BinaryReader(File.Open(FileName, FileMode.Open)))
                     {
                         readNode.Leaf = reader.ReadBoolean();
                         //readNode.Parent = reader.ReadInt64();
-                        for (int kvi = 0; kvi <= k; ++kvi)
+                        for (int kvi = 0; kvi <= K; ++kvi)
                         {
                             float key = reader.ReadSingle();
                             string val = reader.ReadString();
                             readNode.KVPairs[kvi] = new KeyValuePair<float, string>(key, val);
                         }
-                        for (int ci = 0; ci <= (k + 1); ++ci)
+                        for (int ci = 0; ci <= (K + 1); ++ci)
                         {
-                            readNode.Children[ci] = reader.ReadInt64();
+                            //readNode.Children[ci] = reader.ReadInt64();
                         }
                     } // end using
                 } // end if
@@ -216,14 +248,14 @@ namespace WebCompare2_0.Model
                 {
                     writer.Write(node.Leaf);
                     //writer.Write(node.Parent);
-                    for (int kvi = 0; kvi <= k; ++kvi)
+                    for (int kvi = 0; kvi <= K; ++kvi)
                     {
                         writer.Write(node.KVPairs[kvi].Key);
                         writer.Write(node.KVPairs[kvi].Value);
                     }
-                    for (int ci = 0; ci <= (k + 1); ++ci)
+                    for (int ci = 0; ci <= (K + 1); ++ci)
                     {
-                        writer.Write(node.Children[ci]);
+                       // writer.Write(node.Children[ci]);
                     }
 
                 }
@@ -243,9 +275,10 @@ namespace WebCompare2_0.Model
         /// <param name="key"></param
         /// <param name="min">Index.</param>
         /// <param name="max">Index.</param>
-        public KeyValuePair<long, string> SearchTree(int key)
+        public string SearchTree(float key)
         {
-            return new KeyValuePair<long, string>(0, "");
+
+            return null;
         }
 
 
@@ -254,48 +287,178 @@ namespace WebCompare2_0.Model
         /// </summary>
         /// <param name="key"></param>
         /// <param name="value"></param>
-        public void Insert(long key, string value)
+        public void Insert(float key, string value)
         {
-            Node rt = ReadTree(root.ID);
-            KeyValuePair<long, string> kvp = new KeyValuePair<long, string>;
-            if (rt.NumberOfKeys == (k - 1))
+            try
             {
-                Node nd = new Node();
-                root = nd;
-                nd.Leaf = false;
-                nd.Children[0] = rt;
+                Node nd = this.Root;
+                KeyValuePair<float, string> kvp = new KeyValuePair<float, string>(key, value);
+
+                // If node is not full insert, else split
+                if (nd.NumberOfKeys < kvp_SIZE)
+                {
+                    InsertNonFull(nd, kvp);
+                }
+                else
+                {
+                    // New parent
+                    Node p = new Node();
+                    p.Leaf = false;
+                    p.Children[0] = Root;
+
+                    // Split nd into mini tree
+                    SplitChild(p, nd, 0);
+
+                    // Move middle key to parent node, append this nodes children to the parents children
+                    InsertNonFull(nd, kvp);
+
+                } // End else
             }
+            catch (Exception e) { Console.WriteLine("Error during BTree insert: " + e); }
         }
 
+        /// <summary>
+        /// Add key value pair to the tree
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="value"></param>
+        public void InsertNonFull(Node x, KeyValuePair<float, string> kvp)
+        {
+            int i = x.NumberOfKeys - 1;
+            if (x.Leaf)
+            {
+                // Find correct key position and shuffle KVPairs
+                while (i >= 0 && x.KVPairs[i].Key > kvp.Key)
+                {
+                    x.KVPairs[i + 1] = x.KVPairs[i];
+                    --i;
+                }
+                // Insert the key
+                x.KVPairs[i] = kvp;
+                ++x.NumberOfKeys;
+            }
+            else
+            {
+                // Find child to add new key
+                while (i >= 0 && x.KVPairs[i].Key > kvp.Key)
+                {
+                    --i;
+                }
+                // Read where kvp is in x.KVPairs.Children[i]
+                ++i;
+                ReadTree(x.Children[i].ID);
+                // Check if child node is full
+                if (x.Children[i].NumberOfKeys == kvp_SIZE)
+                {
+                    // Split
+                    SplitChild(x, x.Children[i], i);
+
+                    // New children arex.Children[i] and x.Children[i + 1]
+                    if (kvp.Key > x.KVPairs[i].Key)
+                        ++i;
+                }
+
+                // Recursive insert now that we are not full
+                InsertNonFull(x.Children[i], kvp);
+            }
+
+        }
 
         /// <summary>
         /// Split full node
         /// </summary>
         /// <param name="parent"></param>
-        /// <param name="child"></param>
+        /// <param name="nd"></param>
         /// <param name="index"></param>
-        public void SplitNode(Node parent, Node child, int index)
+        public void SplitChild(Node parent, Node oldChild, int index)
         {
-            Node childB = new Node();
-            childB.Leaf = child.Leaf;
-
-            // hand off keys
-            for (int i = 0; i < (k-1)/2; ++i)
+            // New child node
+            Node newChild = new Node();
+            // If old node was a leaf new node is now a leaf
+            newChild.Leaf = oldChild.Leaf;
+            // New node will have K-1 keyvalue pairs due to old node splitting in half
+            newChild.NumberOfKeys = K - 1;
+            // Hand over back keys
+            for (int i = 0; i < K - 1; ++i)
             {
-                childB.KVPairs[i] = child.KVPairs[k-1-i];
-                child.KVPairs[k-1-i] = default(KeyValuePair<float, string>);
+                newChild.KVPairs[i] = oldChild.KVPairs[i + (K - 1)];
+                oldChild.KVPairs[i + (K - 1)] = default(KeyValuePair<float, string>);
             }
-            // hand off children
-            if (!child.Leaf)
+            // old nodes keys
+            oldChild.NumberOfKeys = K - 1;
+            // Hand over Childs
+            if (!oldChild.Leaf)
             {
-                for (int i = 0; i < (k-1)/2; ++i)
+                for (int i = 0; i < K; ++i)
                 {
-                    childB.Children[i] = child.Children[k-1-i];
-                    child.Children[k-1-i] = default(long);
+                    newChild.Children[i] = oldChild.Children[i + K];
                 }
             }
-
-
+            // Add the halved old node and new node as 
+            // children of the parent we passed in
+            for (int i = parent.NumberOfKeys; i > index + 1; --i)
+            {
+                parent.Children[i + 1] = parent.Children[i];
+            }
+            parent.Children[index + 1] = newChild;
+            // Move keys also
+            for (int i = parent.NumberOfKeys; i > index; --i)
+            {
+                parent.KVPairs[i + 1] = parent.KVPairs[i];
+            }
+            ++parent.NumberOfKeys;
+            // Write to disk
+            WriteTree(oldChild);
+            WriteTree(newChild);
+            WriteTree(parent);
         }
     }
 }
+
+
+
+/*
+ * Not Used
+ /// <summary>
+        /// Split full node
+        /// </summary>
+        /// <param name="parent"></param>
+        /// <param name="nd"></param>
+        /// <param name="index"></param>
+        public Node SplitNode(Node nd)
+        {
+            // Create new child nodes
+            Node childA = new Node();
+            Node childB = new Node();
+            childA.Leaf = true;
+            childA.NumberOfKeys = K - 1;
+            childB.Leaf = true;
+            childB.NumberOfKeys = K - 1;
+
+            // Hand off Keys
+            for (int i = 0; i < (K - 1); ++i)
+            {
+                childA.KVPairs[i] = nd.KVPairs[i];
+            }
+
+            // Hand off Keys
+            for (int i = kvp_SIZE; i > (K - 1); --i)
+            {
+                childB.KVPairs[i] = nd.KVPairs[i];
+            }
+
+            // Promote middle node 
+            Node newParent = new Node();
+            newParent.KVPairs[0] = nd.KVPairs[K - 1];
+
+            // Clear nd
+            nd = null;
+
+            // Set children
+            newParent.Children[0] = childA;
+            newParent.Children[1] = childB;
+
+            return newParent;
+        }
+ */
+
