@@ -16,10 +16,11 @@ namespace WebCompare2_0.Model
     public class HTable
     {
         private HEntry[] table;
-        private int tableSize = 16;
+        private int tableSize = 32;
         private int count;
         private double similarity;
         private string url, name;
+        DateTime lastUpdated;
 
         // Entry class
         [Serializable()]
@@ -43,6 +44,7 @@ namespace WebCompare2_0.Model
         {
             this.count = 0;
             this.table = new HEntry[tableSize];
+            this.lastUpdated = DateTime.Now;
         }
 
 
@@ -240,6 +242,18 @@ namespace WebCompare2_0.Model
                 name = value;
             }
         }
+
+        public DateTime LastUpdated
+        {
+            get
+            {
+                return lastUpdated;
+            }
+            set
+            {
+                lastUpdated = value;
+            }
+        }
         #endregion
 
         #region Serialization
@@ -256,28 +270,6 @@ namespace WebCompare2_0.Model
                 TestFileStream.Close();
             }
             catch (Exception e) { Console.WriteLine("Error in SaveTable: " + e); }
-        }
-
-        public HTable LoadTable(int num)
-        {
-            string FileName = $"tablebin\\table{num}.bin";
-            HTable loadedTable = null;
-            try
-            {
-                if (File.Exists(FileName))
-                {
-                    Stream filestream = File.OpenRead(FileName);
-                    BinaryFormatter deserializer = new BinaryFormatter();
-                    loadedTable = (HTable)deserializer.Deserialize(filestream);
-                    filestream.Close();
-                }
-                else
-                {
-                    MessageBox.Show("Error", "Table does not exist", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception e) { Console.WriteLine("Error in LoadTable: " + e); }
-            return loadedTable;
         }
 
         #endregion

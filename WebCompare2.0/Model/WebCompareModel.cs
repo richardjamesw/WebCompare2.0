@@ -116,18 +116,6 @@ namespace WebCompare2_0.Model
             return output;
         }
 
-        /// <summary>
-        /// Parse the data using regex and weighted delimiters
-        /// </summary>
-        /// <param name="data">data to parse</param>
-        public static string[] Parser(string[] data)
-        {
-            try { }
-            catch { }
-
-            return null;
-        }
-
         // Similarity Calculation
         // Build Vectors
         public static List<object>[] BuildVector(HTable tableA, HTable tableB)

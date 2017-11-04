@@ -95,7 +95,7 @@ namespace WebCompare2_0.ViewModel
             }
         }
 
-        private string status = "Enter a URL and press start above. \n Or try https://stocktwits.com/symbol/GOOG.";
+        private string status = "Enter a URL and press start above. \n Or try https://en.wikipedia.org/wiki/Oswego,_New_York.";
         public string Status
         {
             get
@@ -124,7 +124,6 @@ namespace WebCompare2_0.ViewModel
         private void OnGo()
         {
             Session.Instance.Start();
-            GoCommand.RaiseCanExecuteChanged();
         }
         private bool CanGo()
         {

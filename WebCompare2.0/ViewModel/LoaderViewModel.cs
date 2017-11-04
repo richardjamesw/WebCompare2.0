@@ -20,7 +20,6 @@ namespace WebCompare2_0.ViewModel
         public readonly BackgroundWorker startWorker = new BackgroundWorker();
         private static object lockObj = new object();
         private static volatile LoaderViewModel instance;
-        private int TableNumber = 0;
 
 
         public static LoaderViewModel Instance
@@ -135,10 +134,8 @@ namespace WebCompare2_0.ViewModel
         private void loadWorker_DoWork(object sender, DoWorkEventArgs e)
         {
             // Create new tree
-            BTree tree = new BTree();
-            string fileName = $"treebin\\tree.bin";
             string[] parsedData = null;
-
+            int TableNumber = 0;
             try
             {
                 // Get list of websites
@@ -168,9 +165,10 @@ namespace WebCompare2_0.ViewModel
                         // Write HTable to file
                         table.SaveTable(TableNumber);
                         // Add HTable to BTree, including write to file
-                        tree.Insert(TableNumber, table.Name);
+                        Session.Instance.Tree.Insert(TableNumber, table.Name);
                         ++TableNumber;
                     }
+                    AddMessage("Completed building frequency tables..");
                 } // End AllSites foreach
             } catch (Exception err) { MessageBox.Show("Exception caught: " + err, "Exception:Loader:loaderWorker_DoWork()", MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
@@ -199,7 +197,7 @@ namespace WebCompare2_0.ViewModel
                 MainWindow mw = new MainWindow();
                 mw.DataContext = WebCompareViewModel.Instance;
                 mw.Show();
-                WebCompare2_0.App.Instance.CloseLoader();
+                // App.Instance.CloseLoader();
             } catch (Exception err) { Console.WriteLine("Error:startWorker_DoWork: " + err); }
         }
 
