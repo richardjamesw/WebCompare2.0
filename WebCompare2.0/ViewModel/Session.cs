@@ -163,10 +163,11 @@ namespace WebCompare2_0.ViewModel
             {
                 if (File.Exists(FileName))
                 {
-                    Stream filestream = File.OpenRead(FileName);
-                    BinaryFormatter deserializer = new BinaryFormatter();
-                    loadedTable = (HTable)deserializer.Deserialize(filestream);
-                    filestream.Close();
+                    using (Stream filestream = File.OpenRead(FileName))
+                    {
+                        BinaryFormatter deserializer = new BinaryFormatter();
+                        loadedTable = (HTable)deserializer.Deserialize(filestream);
+                    }
                 }
                 else
                 {

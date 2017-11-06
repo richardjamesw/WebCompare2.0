@@ -53,25 +53,22 @@ namespace WebCompare2_0.Model
                 WebRequest webRequest;
                 webRequest = WebRequest.Create(url);
 
-                Stream objStream;
-                objStream = webRequest.GetResponse().GetResponseStream();
-
-                // get stream of the website list for specific category
-                StreamReader objReader = new StreamReader(objStream);
-                // skip first line, data not useful
-                objReader.ReadLine();
-                // for each line in the category pull 200 sites
-                for (int s = 0; s < 200; ++s)
+                using (Stream objStream = webRequest.GetResponse().GetResponseStream())
+                using (StreamReader objReader = new StreamReader(objStream)) // get stream of the website list for specific category
                 {
-                    if (objReader != null)
+                    // skip first line, data not useful
+                    objReader.ReadLine();
+                    // for each line in the category pull 200 sites
+                    for (int s = 0; s < 200; ++s)
                     {
-                        line = objReader.ReadLine();
-                        var result = Regex.Match(line, regex);
-                        output[s] = "https://en.wikipedia.org/wiki/" + result.Groups["url"].Value;
+                        if (objReader != null)
+                        {
+                            line = objReader.ReadLine();
+                            var result = Regex.Match(line, regex);
+                            output[s] = "https://en.wikipedia.org/wiki/" + result.Groups["url"].Value;
+                        }
                     }
                 }
-                objReader.Close();
-                objStream.Close();
             }
             catch (Exception e)
             {
@@ -98,6 +95,12 @@ namespace WebCompare2_0.Model
                 if (node != null) title = node.InnerText;
                 // Paragraphs
                 var nodes = doc.DocumentNode.SelectNodes("//p");
+                // Invalid data 
+                if (nodes == null)
+                {
+                    Console.WriteLine("Site invalid, no data retrieved.");
+                    return null;
+                }
                 data = title;
                 foreach (var n in nodes)
                 {

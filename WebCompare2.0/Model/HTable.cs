@@ -262,12 +262,13 @@ namespace WebCompare2_0.Model
         {
             try
             {
-                Directory.CreateDirectory("tablebin\\");
+                var cd = Directory.CreateDirectory("tablebin\\");
                 string FileName = $"tablebin\\table{num}.bin";
-                Stream TestFileStream = File.Create(FileName);
-                BinaryFormatter serializer = new BinaryFormatter();
-                serializer.Serialize(TestFileStream, this);
-                TestFileStream.Close();
+                using (Stream TestFileStream = File.Create(FileName))
+                {
+                    BinaryFormatter serializer = new BinaryFormatter();
+                    serializer.Serialize(TestFileStream, this);
+                }
             }
             catch (Exception e) { Console.WriteLine("Error in SaveTable: " + e); }
         }

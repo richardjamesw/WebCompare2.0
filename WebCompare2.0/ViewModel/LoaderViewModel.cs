@@ -154,6 +154,8 @@ namespace WebCompare2_0.ViewModel
                     {
                         // Get data from website and parse
                         parsedData = WebCompareModel.GetWebDataAgility(site);
+                        if (parsedData == null)
+                            break;
                         // Fill a new HTable (frequency table)
                         HTable table = new HTable();
                         table.URL = site;

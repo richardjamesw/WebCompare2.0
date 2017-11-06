@@ -32,10 +32,10 @@ namespace WebCompare2_0.Model
             {
                 // Read in the root
                 root = ReadTree(1);
-                // Read Children
-                for (int i = 0; i < NumberOfNodes; ++i)
+                if (root == null)
                 {
-                    
+                    root = new Node();
+                    root.ID = 1;
                 }
             }
             else
@@ -80,8 +80,9 @@ namespace WebCompare2_0.Model
         {
             try
             {
-                string FileName = $"treebin\\numberofnodes.bin";
-                return Int32.Parse(File.ReadAllText(FileName));
+                string FileName = $"treebin\\tree.bin";
+                long length = new System.IO.FileInfo(FileName).Length;
+                return (int)(length);
             }
             catch { return 0; }
         }
@@ -113,7 +114,7 @@ namespace WebCompare2_0.Model
         {
             long id;
             bool leaf;
-            int numberOfKeys = 0;
+            int numberOfKeys;
             KeyValuePair<float, string>[] kvPairs;
             Node[] children;
             long[] childIDs;
@@ -121,6 +122,7 @@ namespace WebCompare2_0.Model
             public Node()
             {
                 id = ++NumberOfNodes;
+                numberOfKeys = 0;
                 leaf = true;
                 kvPairs = new KeyValuePair<float, string>[kvp_SIZE];
                 children = new Node[children_SIZE];
@@ -213,11 +215,11 @@ namespace WebCompare2_0.Model
             {
                 if (File.Exists(FileName))
                 {
-                    FileStream fs = new FileStream(FileName, FileMode.Open, FileAccess.Read);
-                    fs.Seek(id, SeekOrigin.Begin);
-                    readNode.KVPairs = new KeyValuePair<float, string>[K];
+                    using (FileStream fs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
                     using (BinaryReader reader = new BinaryReader(fs))
                     {
+                        readNode = new Model.BTree.Node();
+                        fs.Seek(id, SeekOrigin.Begin);
                         readNode.Leaf = reader.ReadBoolean();
                         //readNode.Parent = reader.ReadInt64();
                         for (int kvi = 0; kvi <= K; ++kvi)
@@ -234,7 +236,6 @@ namespace WebCompare2_0.Model
                 } // end if
             }
             catch (Exception e) { Console.WriteLine("Error in ReadNode: " + e); }
-            
             return readNode;
         }
 
@@ -248,7 +249,8 @@ namespace WebCompare2_0.Model
             Node[] childs = new Node[children_SIZE];
             for (int i = 0; i < ids.Length; ++i)
             {
-                childs[i] = ReadTree(ids[i]);
+                if (ids[0] != 0)   // Block invalid childs
+                    childs[i] = ReadTree(ids[i]);
             }
             return childs;
         }
@@ -259,37 +261,43 @@ namespace WebCompare2_0.Model
         /// </summary>
         /// <param name="node">Node to be written.</param>
         /// <param name="id">Node identification number.</param>
+        private static object lockObj = new object();
         public void WriteTree(Node node)
         {
             string FileName = $"treebin\\tree.bin";
-            FileStream fs = new FileStream(FileName, FileMode.Append, FileAccess.Write);
-            try
+            lock (lockObj)
             {
-                MemoryStream ms = new MemoryStream();
-                using (BinaryWriter writer = new BinaryWriter(ms))
+                try
                 {
-                    writer.Write(node.Leaf);
-                    for (int kvi = 0; kvi <= K; ++kvi)
+                    using (FileStream fs = new FileStream(FileName, FileMode.OpenOrCreate, FileAccess.Write))
+                    using (MemoryStream ms = new MemoryStream())
+                    using (BinaryWriter writer = new BinaryWriter(ms))
                     {
-                        writer.Write(node.KVPairs[kvi].Key);
-                        writer.Write(node.KVPairs[kvi].Value);
-                    }
-                    if (node.ChildIDs != null)
-                    {
-                        foreach (var ck in node.ChildIDs)
+                        writer.Write(node.Leaf);
+                        for (int kvi = 0; kvi <= K; ++kvi)
                         {
-                            writer.Write(ck);
+                            if (node.KVPairs[kvi].Value != null)
+                            {
+                                writer.Write(node.KVPairs[kvi].Key);
+                                writer.Write(node.KVPairs[kvi].Value);
+                            }
                         }
-                    }
+                        if (node.ChildIDs != null)
+                        {
+                            foreach (var ck in node.ChildIDs)
+                            {
+                                writer.Write(ck);
+                            }
+                        }
 
+
+                        byte[] bytes = ms.ToArray();
+                        fs.Seek(node.ID, SeekOrigin.Begin);
+                        fs.Write(bytes, 0, ByteLength);  // write the stream to file
+                    }
                 }
-                byte[] bytes = ms.ToArray();
-                fs.Seek(node.ID, SeekOrigin.Begin);
-                fs.Write(bytes, (int)fs.Position, ByteLength);  // write the stream to file
-                fs.Close();
+                catch (Exception e) { Console.WriteLine("Error in WriteNode: " + e); }
             }
-            catch (Exception e) { Console.WriteLine("Error in WriteNode: " + e); }
-            finally { fs.Close(); }
         }
 
 
@@ -344,6 +352,9 @@ namespace WebCompare2_0.Model
         /// <param name="value"></param>
         public void Insert(float key, string value)
         {
+            if (value == null)
+                return;
+
             try
             {
                 Node nd = this.Root;
@@ -400,14 +411,15 @@ namespace WebCompare2_0.Model
                     --i;
                 }
                 // Insert the key
-                x.KVPairs[i] = kvp;
+                x.KVPairs[i + 1] = kvp;
                 ++x.NumberOfKeys;
                 WriteTree(x);
             }
             else
             {
                 // Get x children from disk
-                x.Children = ReadChildren(x.ChildIDs);
+                if (x.ChildIDs[0] > 0)
+                    x.Children = ReadChildren(x.ChildIDs);
                 // Find child to add new key
                 while (i >= 0 && x.KVPairs[i].Key > kvp.Key)
                 {
@@ -417,18 +429,22 @@ namespace WebCompare2_0.Model
                 ++i;
 
                 // Check if child node is full
-                if (x.Children[i].NumberOfKeys == kvp_SIZE)
+                if (x.Children[i] != null)
                 {
-                    // Split
-                    SplitChild(x, x.Children[i], i);
+                    if (x.Children[i].NumberOfKeys == kvp_SIZE)
+                    {
+                        // Split
+                        SplitChild(x, x.Children[i], i);
 
-                    // New children are x.Children[i] and x.Children[i + 1]
-                    if (kvp.Key > x.KVPairs[i].Key)
-                        ++i;
+                        // New children are x.Children[i] and x.Children[i + 1]
+                        if (kvp.Key > x.KVPairs[i].Key)
+                            ++i;
+                    }
                 }
 
                 // Recursive insert now that we are not full
-                InsertNonFull(x.Children[i], kvp);
+                if (x.Children[i] != null)
+                    InsertNonFull(x.Children[i], kvp);
             }
 
         }
