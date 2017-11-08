@@ -17,7 +17,6 @@ namespace WebCompare2_0.ViewModel
         #region Instance Variables
 
         public readonly BackgroundWorker loadWorker = new BackgroundWorker();
-        public readonly BackgroundWorker startWorker = new BackgroundWorker();
         private static object lockObj = new object();
         private static volatile LoaderViewModel instance;
 
@@ -44,8 +43,6 @@ namespace WebCompare2_0.ViewModel
             loadWorker.RunWorkerCompleted += loadWorker_RunWorkerCompleted;
             LoadCommand = new DelegateCommand(OnLoad, CanLoad);
 
-            startWorker.DoWork += startWorker_DoWork;
-            startWorker.RunWorkerCompleted += startWorker_RunWorkerCompleted;
             StartCommand = new DelegateCommand(OnStart, CanStart);
         }
         #endregion
@@ -119,7 +116,9 @@ namespace WebCompare2_0.ViewModel
         public DelegateCommand StartCommand { get; private set; }
         private void OnStart()
         {
-            startWorker.RunWorkerAsync();
+            MainWindow mw = new MainWindow();
+            mw.DataContext = WebCompareViewModel.Instance;
+            mw.Show();
             StartCommand.RaiseCanExecuteChanged();
         }
         private bool CanStart()
@@ -140,29 +139,40 @@ namespace WebCompare2_0.ViewModel
             {
                 // Get list of websites
                 string[][] AllSites = new string[5][];
+                TableNumber = GetNumberOfKeys() + 1;
+                int sitesRemaining = 1531 - TableNumber;
                 for (int i = 0; i < AllSites.Length; ++i)
                 {
                     AddMessage($"Getting site list for '{Enum.GetName(typeof (WebCompareModel.SitesEnum), i)}' cluster");
-                    AllSites[i] = WebCompareModel.GetSiteList(WebCompareModel.Websites[i]);
+                    AllSites[i] = WebCompareModel.GetSiteList(WebCompareModel.Websites[i], (sitesRemaining/5));
                 }
 
-                // Build frequency tables from 1000 sites
+                // Build frequency tables from 1000+ sites
+                int sitecateg = 1, statusCount = 1, scx = 1;
                 foreach (string[] sites in AllSites)
                 {
-                    AddMessage("Building frequency tables..");
+                    AddMessage("Building frequency tables for cluster.. " + sitecateg);
                     foreach (string site in sites)
                     {
+                        // Status display
+                        if (statusCount == 100)
+                        {
+                            AddMessage($"Sites to go..{sites.Count() * 5 - scx + 70}");
+                            statusCount = 0;
+                        } ++statusCount; ++scx;
+
                         // Get data from website and parse
                         parsedData = WebCompareModel.GetWebDataAgility(site);
-                        if (parsedData == null)
-                            break;
                         // Fill a new HTable (frequency table)
                         HTable table = new HTable();
                         table.URL = site;
                         table.Name = site.Substring(30);
-                        for (int w = 0; w < parsedData.Length; ++w)
+                        if (parsedData != null)
                         {
-                            table.Put(parsedData[w], 1);
+                            for (int w = 0; w < parsedData.Length; ++w)
+                            {
+                                table.Put(parsedData[w], 1);
+                            }
                         }
                         // Write HTable to file
                         table.SaveTable(TableNumber);
@@ -170,7 +180,8 @@ namespace WebCompare2_0.ViewModel
                         Session.Instance.Tree.Insert(TableNumber, table.Name);
                         ++TableNumber;
                     }
-                    AddMessage("Completed building frequency tables..");
+                    AddMessage("Completed building frequency table " + sitecateg);
+                    ++sitecateg;
                 } // End AllSites foreach
             } catch (Exception err) { MessageBox.Show("Exception caught: " + err, "Exception:Loader:loaderWorker_DoWork()", MessageBoxButton.OK, MessageBoxImage.Warning); }
         }
@@ -181,32 +192,6 @@ namespace WebCompare2_0.ViewModel
             AddMessage("LOAD COMPLETED.");
             // Tell GUI everything is done updating
             UpdateIsChecked = false;
-            StartCommand.RaiseCanExecuteChanged();
-            LoadCommand.RaiseCanExecuteChanged();
-            // ENABLE the start button
-            StartCommand.RaiseCanExecuteChanged();
-        }
-
-        /// <summary>
-        /// Worker method for start button
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void startWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            try
-            {
-                MainWindow mw = new MainWindow();
-                mw.DataContext = WebCompareViewModel.Instance;
-                mw.Show();
-                // App.Instance.CloseLoader();
-            } catch (Exception err) { Console.WriteLine("Error:startWorker_DoWork: " + err); }
-        }
-
-        private void startWorker_RunWorkerCompleted(object sender,
-                                                 RunWorkerCompletedEventArgs e)
-        {
-            startWorker.Dispose();
         }
 
         #endregion
@@ -219,7 +204,21 @@ namespace WebCompare2_0.ViewModel
             LoadStatus += "\n" + s;
         }
 
-
+        /// <summary>
+        /// Read number of keys
+        /// </summary>
+        /// <returns></returns>
+        public static int GetNumberOfKeys()
+        {
+            string DirName = $"tablebin\\";
+            try
+            {
+                if (!Directory.Exists(DirName)) return 0;
+                int count = Directory.GetFiles(DirName).Length;
+                return count;
+            }
+            catch { return 0; }
+        }
         #endregion
 
 

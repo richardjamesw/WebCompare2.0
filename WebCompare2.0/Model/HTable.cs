@@ -311,7 +311,6 @@ namespace WebCompare2_0.Model
 
         public void ExpandCapacity()
         {
-            Console.WriteLine("Expanding HashTable...start");
             try
             {
                 this.tableSize *= 2;
@@ -324,7 +323,6 @@ namespace WebCompare2_0.Model
                 }
             }
             catch (Exception e) { Console.WriteLine("Error while Expanding table: " + e); }
-            Console.WriteLine("Expanding HashTable...end");
         }
 
 

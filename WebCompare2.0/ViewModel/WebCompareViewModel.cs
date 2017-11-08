@@ -52,7 +52,7 @@ namespace WebCompare2_0.ViewModel
         #region Properties
 
         // user entereed url
-        private string userURL = "https://stocktwits.com/symbol/QQQ";
+        private string userURL = "https://en.wikipedia.org/wiki/World_War_I";
         public string UserURL
         {
             get
@@ -95,7 +95,7 @@ namespace WebCompare2_0.ViewModel
             }
         }
 
-        private string status = "Enter a URL and press start above. \n Or try https://en.wikipedia.org/wiki/Oswego,_New_York.";
+        private string status = "Enter a URL and press start above.";
         public string Status
         {
             get

@@ -40,10 +40,9 @@ namespace WebCompare2_0.Model
         /// </summary>
         /// <param name="url"></param>
         /// <returns></returns>
-        public static string[] GetSiteList(string url)
+        public static string[] GetSiteList(string url, int numSites)
         {
-            Console.WriteLine("Getting site list for: " + url);
-            string[] output = new string[200];
+            string[] output = new string[numSites];
             try
             {
                 string line = "";
@@ -58,14 +57,25 @@ namespace WebCompare2_0.Model
                 {
                     // skip first line, data not useful
                     objReader.ReadLine();
-                    // for each line in the category pull 200 sites
-                    for (int s = 0; s < 200; ++s)
+                    // for each line in the category pull x num of sites
+                    for (int s = 0; s < numSites; ++s)
                     {
+                        if (objReader.EndOfStream) return output; // quit if we areat the end
                         if (objReader != null)
                         {
                             line = objReader.ReadLine();
                             var result = Regex.Match(line, regex);
-                            output[s] = "https://en.wikipedia.org/wiki/" + result.Groups["url"].Value;
+                            string newSite = "https://en.wikipedia.org/wiki/" + result.Groups["url"].Value;
+                            if (!output.Contains(newSite))
+                            {
+                                // If site doesn't already exists, add it to the list
+                                output[s] = newSite;
+                            }
+                            else
+                            {
+                                // decrement s if we find a copied site
+                                --s;
+                            }
                         }
                     }
                 }

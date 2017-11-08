@@ -22,6 +22,7 @@ namespace WebCompare2_0.ViewModel
         #region Instance Variables & Constructor
         public readonly BackgroundWorker worker = new BackgroundWorker();
         private WebCompareViewModel wcViewModel = WebCompareViewModel.Instance;
+        int SiteTotal = 0;
 
         private static object lockObj = new object();
         private static volatile Session instance;
@@ -79,8 +80,11 @@ namespace WebCompare2_0.ViewModel
 
         private void worker_DoWork(object sender, DoWorkEventArgs e)
         {
+            AddMessage("");
+            wcViewModel.Results = "";
+            wcViewModel.Results = "Top 10 most similar websites: ";
             // Build frequency table for user entered URL
-            AddMessage("Building EnteredURL frequency table..");
+            AddMessage("Building Entered URL frequency table..");
             // Get data from websit and parse
             string[] parsedData = WebCompareModel.GetWebDataAgility(wcViewModel.UserURL);
             // Fill HTable
@@ -92,36 +96,48 @@ namespace WebCompare2_0.ViewModel
                 compareTable.Put(parsedData[w], 1);
             }
             // Array of keyvalue pairs for the top 100 closest sites
-            List<KeyValuePair<long, double>> topSites = null;
-            // Foreach 1000 sites,
-            AddMessage("Calculating Similarities for 1000 webistes..");
-            for (int i = 0; i < 1000; ++i)
+            List<KeyValuePair<long, double>> topSites = new List<KeyValuePair<long, double>>();
+            // Foreach sites,
+            AddMessage("\nCalculating Similarities for 1000+ webistes..");
+            SiteTotal = LoaderViewModel.GetNumberOfKeys();
+            int statusCount = 0;
+            AddMessage($"\nSites to go..{SiteTotal}");
+            for (int i = 1; i < SiteTotal; ++i)
             {
+                // Status display
+                ++statusCount;
+                if (statusCount == 50)
+                {
+                    AddMessage($"\nSites to go..{SiteTotal - i + 70}");
+                    statusCount = 0;
+                }
                 //// Build Vector
                 HTable tempTable = LoadTable(i);
-                List<object>[] vector = WebCompareModel.BuildVector(tempTable, compareTable);
-                //// Calcualte similarity
-                tempTable.Similarity = WebCompareModel.CosineSimilarity(vector);
-                //// Update table
-                tempTable.SaveTable(i);
-                //// Maintain array of top 100 sites (IDs)
-                topSites = AddTopSite(topSites, new KeyValuePair<long, double>(i, tempTable.Similarity));
-                //// Check if the stored site needs updating
-                DateTime compDate = DateTime.Now.Subtract(new TimeSpan(30, 0, 0, 0));
-                if (tempTable.LastUpdated < compDate)
+                if (tempTable != null)
                 {
-                    //// Update the HTable
-                    UpdateTable(ref tempTable);
+                    List<object>[] vector = WebCompareModel.BuildVector(tempTable, compareTable);
+                    //// Calcualte similarity
+                    tempTable.Similarity = WebCompareModel.CosineSimilarity(vector);
+                    //// Update table
+                    tempTable.SaveTable(i);
+                    //// Maintain array of top 100 sites (IDs)
+                    topSites = AddTopSite(topSites, new KeyValuePair<long, double>(i, tempTable.Similarity));
+                    //// Check if the stored site needs updating
+                    DateTime compDate = DateTime.Now.Subtract(new TimeSpan(30, 0, 0, 0));
+                    if (tempTable.LastUpdated < compDate)
+                    {
+                        //// Update the HTable
+                        UpdateTable(ref tempTable);
+                    }
                 }
 
             }
             // For top 10 websites
-            wcViewModel.Results = "Top 10 most similar: ";
             for (int i = 0; i < 10; ++i)
             {
                 //// Get Name of site using Key
                 //// Display 10 sites
-                string siteName = Tree.SearchTree(topSites[i].Key, 0);
+                string siteName = Tree.SearchTree(topSites[i].Key, 1);
                 wcViewModel.Results += "\n" + siteName;
             }
 
@@ -171,7 +187,7 @@ namespace WebCompare2_0.ViewModel
                 }
                 else
                 {
-                    MessageBox.Show("Error", "Table does not exist", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Table does not exist", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
             catch (Exception e) { Console.WriteLine("Error in LoadTable: " + e); }
@@ -181,7 +197,7 @@ namespace WebCompare2_0.ViewModel
 
         public void UpdateTable(ref HTable ht)
         {
-            AddMessage("Updtating frequency table..");
+            AddMessage("\nUpdtating frequency table..");
             // Get data from websit and parse
             ht.Table = null;   // Clear current table
             ht.TableSize = 32;
@@ -193,7 +209,7 @@ namespace WebCompare2_0.ViewModel
                 ht.Put(parsedData[w], 1);
             }
 
-            AddMessage("COMPLETED updating frequency table..");
+            AddMessage("\nCOMPLETED updating frequency table..");
         }
 
 
@@ -205,23 +221,40 @@ namespace WebCompare2_0.ViewModel
         /// <returns></returns>
         private List<KeyValuePair<long, double>> AddTopSite(List<KeyValuePair<long, double>> topSites, KeyValuePair<long, double> kvp)
         {
-
-            for (int c = 0; c < topSites.Count; ++c)
+            if (topSites.Count == 0)
             {
+                topSites.Add(kvp);
+                return topSites;
+            }
+
+            for (int c = 0; c <= topSites.Count; ++c)
+            {
+                if (c == topSites.Count)
+                {
+                    if(topSites.Count <= 100)
+                    {
+                        topSites.Add(kvp);
+                    }
+                    // Only keep 100 sites
+                    if (topSites.Count >= 101)
+                        topSites.RemoveAt(100);   // Remove the last element
+                    return topSites;
+                }
+
                 if (kvp.Value > topSites[c].Value)
                 {
                     topSites.Insert(c, kvp);
                     // Only keep 100 sites
-                    if (topSites.Count >= 100)
-                        topSites.RemoveAt(99);   // Remove the last element
-                }
-                else if (topSites.Count < 100)
-                {
-                    topSites.Add(kvp);   // Add to end if list is not full
+                    if (topSites.Count >= 101)
+                        topSites.RemoveAt(100);   // Remove the last element
+
+                    return topSites;
                 }
             }
 
-
+            // Only keep 100 sites
+            if (topSites.Count >= 101)
+                topSites.RemoveAt(100);   // Remove the last element
             return topSites;
         }
 
@@ -232,7 +265,7 @@ namespace WebCompare2_0.ViewModel
         /// <returns></returns>
         private void GetResult(List<KeyValuePair<long, double>> topSites)
         {
-            AddMessage("Getting Result Category");
+            AddMessage("\nGetting Result Category");
             List<KeyValuePair<int, string>> results = new List<KeyValuePair<int, string>>();    // Array counting the most similar sites
             results.Add(new KeyValuePair<int, string>(0, "Sports"));
             results.Add(new KeyValuePair<int, string>(0, "Calculus"));
@@ -243,30 +276,30 @@ namespace WebCompare2_0.ViewModel
             {
                 for (int i = 0; i < topSites.Count; ++i)
                 {
-                    if (topSites[i].Key < 200)
+                    if (topSites[i].Key < (SiteTotal/5))
                     {
                         results[0] = new KeyValuePair<int, string>(results[0].Key + 1, "Sports");
                     }
-                    else if (topSites[i].Key >= 200 && topSites[i].Key < 400)
+                    else if (topSites[i].Key >= (SiteTotal / 5) && topSites[i].Key < ((SiteTotal * 2) / 5))
                     {
                         results[1] = new KeyValuePair<int, string>(results[1].Key + 1, "Calculus");
                     }
-                    else if (topSites[i].Key >= 400 && topSites[i].Key < 600)
+                    else if (topSites[i].Key >= ((SiteTotal * 2) / 5) && topSites[i].Key < ((SiteTotal * 3) / 5))
                     {
                         results[2] = new KeyValuePair<int, string>(results[2].Key + 1, "Geography");
                     }
-                    else if (topSites[i].Key >= 600 && topSites[i].Key < 800)
+                    else if (topSites[i].Key >= ((SiteTotal * 3) / 5) && topSites[i].Key < ((SiteTotal * 4) / 5))
                     {
                         results[3] = new KeyValuePair<int, string>(results[3].Key + 1, "History");
                     }
-                    else if (topSites[i].Key >= 800)
+                    else if (topSites[i].Key >= ((SiteTotal * 4) / 5))
                     {
-                        results[4] = new KeyValuePair<int, string>(results[4].Key + 1, "Sports");
+                        results[4] = new KeyValuePair<int, string>(results[4].Key + 1, "Music");
                     }    
                 }   // End for
 
-                results = results.OrderBy(o => o.Key).ToList();
-                wcViewModel.Results += "MOST SIMILAR CATEGORY" + results[0].Value;
+                results = results.OrderByDescending(o => o.Key).ToList();
+                wcViewModel.Results += "\n\nMOST SIMILAR CATEGORY ==" + results[0].Value.ToUpper() + "==";
 
             }
             catch (Exception e) { Console.WriteLine("Error in GetResult(): " + e); }

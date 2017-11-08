@@ -6,13 +6,12 @@
         
         xmlns:local="clr-namespace:WebCompare2._0.View"
         mc:Ignorable="d"
-        Title="Loader" Height="270" Width="300">
+        Title="Loader" Height="450" Width="300">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
+            <RowDefinition Height="40" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="80" />
         </Grid.RowDefinitions>
 
         <!-- Row 0: Text -->
